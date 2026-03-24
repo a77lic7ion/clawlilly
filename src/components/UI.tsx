@@ -5,19 +5,105 @@
 
 import { useState, useEffect } from 'react';
 import { useGameStore } from '../store';
-import { Users, Trophy, Play, Clock, Info, ListOrdered } from 'lucide-react';
+import { Users, Trophy, Play, Clock, Info, ListOrdered, X, ChevronRight, ChevronLeft, Volume2, VolumeX } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { soundService } from '../services/soundService';
+
+const DISALLOW_LIST = new Set(['ASS', 'FUK', 'SHI', 'DIC', 'KOK', 'CNT', 'GAY', 'FAG', 'NIG', 'JEW', 'WOP', 'SPK', 'KYK', 'BUM', 'POO', 'PEE', 'SEX']);
+
+const Tutorial = ({ onClose }: { onClose: () => void }) => {
+  const [step, setStep] = useState(0);
+  const steps = [
+    {
+      title: "Welcome to Neon Claw!",
+      content: "Compete in real-time to grab the most valuable prizes. You have 60 seconds per round.",
+      icon: <Play className="text-[#4285F4]" size={48} />
+    },
+    {
+      title: "Master the Controls",
+      content: "Desktop: Use WASD or Arrow Keys to move, SPACE to drop. Mobile: Use the on-screen D-pad and DROP button.",
+      icon: <div className="flex gap-4"><div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center font-bold">W</div><div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold">DROP</div></div>
+    },
+    {
+      title: "Score Big",
+      content: "Yellow prizes are worth the most (50 pts base). Dodecahedrons and Cones multiply your score by 3x!",
+      icon: <Trophy className="text-[#FBBC04]" size={48} />
+    }
+  ];
+
+  const next = () => {
+    soundService.play('click');
+    if (step < steps.length - 1) setStep(step + 1);
+    else onClose();
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-[100] pointer-events-auto p-6"
+    >
+      <motion.div 
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        className="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl border border-gray-100 text-center relative overflow-hidden"
+      >
+        <div className="absolute top-0 left-0 w-full h-2 bg-gray-100">
+          <motion.div 
+            className="h-full bg-[#4285F4]"
+            animate={{ width: `${((step + 1) / steps.length) * 100}%` }}
+          />
+        </div>
+
+        <div className="mb-8 flex justify-center">
+          <motion.div
+            key={step}
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-24 h-24 bg-gray-50 rounded-3xl flex items-center justify-center"
+          >
+            {steps[step].icon}
+          </motion.div>
+        </div>
+
+        <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">{steps[step].title}</h2>
+        <p className="text-gray-600 font-medium mb-10 leading-relaxed">{steps[step].content}</p>
+
+        <div className="flex gap-3">
+          {step > 0 && (
+            <button 
+              onClick={() => { soundService.play('click'); setStep(step - 1); }}
+              className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+            >
+              <ChevronLeft size={20} /> Back
+            </button>
+          )}
+          <button 
+            onClick={next}
+            className="flex-[2] py-4 bg-[#4285F4] text-white rounded-2xl font-bold hover:bg-[#3367D6] transition-all shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
+          >
+            {step === steps.length - 1 ? "Let's Play!" : "Next"} <ChevronRight size={20} />
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 export const UI = () => {
-  const { connected, players, queue, activePlayer, turnEndTime, myId, join, joinQueue, gameOver } = useGameStore();
+  const { connected, players, queue, activePlayer, turnEndTime, myId, join, joinQueue, gameOver, hasSeenTutorial, setHasSeenTutorial } = useGameStore();
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState('');
   const [timeLeft, setTimeLeft] = useState(0);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
-  const DISALLOW_LIST = new Set([
-    'ASS', 'CUM', 'FAG', 'FUK', 'FUQ', 'GAY', 'JEW', 'JIZ', 'KKK', 'SEX', 'TIT', 'VAG', 'WAP', 'WTF', 'WTG', 'DIK', 'COK', 'FUC', 'FUX', 'NIG', 'NGR', 'BCH', 'BIT', 'HOE', 'SLT', 'CUN', 'KYS'
-  ]);
+  useEffect(() => {
+    soundService.toggle(soundEnabled);
+  }, [soundEnabled]);
 
   const handleJoin = () => {
+    soundService.play('click');
     const finalName = name.toUpperCase();
     if (finalName.length !== 3) {
       setNameError('Name must be exactly 3 letters');
@@ -88,6 +174,10 @@ export const UI = () => {
 
   return (
     <div className="absolute inset-0 pointer-events-none p-4 md:p-6 flex flex-col justify-between font-sans z-10">
+      <AnimatePresence>
+        {!hasSeenTutorial && <Tutorial onClose={() => setHasSeenTutorial(true)} />}
+      </AnimatePresence>
+
       {/* Top Bar */}
       <div className="flex flex-col md:flex-row justify-between items-start gap-4">
         <div className="bg-white/90 backdrop-blur-md shadow-lg rounded-3xl p-4 md:p-5 pointer-events-auto w-full md:w-80 border border-gray-100 flex justify-between items-center">
@@ -97,7 +187,13 @@ export const UI = () => {
               <Users size={12} className="text-[#4285F4]" /> {Object.keys(players).length} Online
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-right flex flex-col items-end">
+            <button 
+              onClick={() => { soundService.play('click'); setSoundEnabled(!soundEnabled); }}
+              className="mb-2 p-1.5 bg-gray-100 rounded-lg text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+            </button>
             <div className="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1 font-bold">{isActive ? 'Current Score' : 'High Score'}</div>
             <div className="text-2xl md:text-3xl font-black text-[#34A853] leading-none">{isActive ? (me.currentScore || 0) : me.score}</div>
           </div>
@@ -108,19 +204,19 @@ export const UI = () => {
           {/* Tabs */}
           <div className="flex gap-2 mb-4 bg-gray-100/50 p-1 rounded-xl">
             <button 
-              onClick={() => setActiveTab('play')}
+              onClick={() => { soundService.play('click'); setActiveTab('play'); }}
               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTab === 'play' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
             >
               <Play size={14} className={activeTab === 'play' ? 'text-[#4285F4]' : ''} /> Play
             </button>
             <button 
-              onClick={() => setActiveTab('leaderboard')}
+              onClick={() => { soundService.play('click'); setActiveTab('leaderboard'); }}
               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTab === 'leaderboard' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
             >
               <Trophy size={14} className={activeTab === 'leaderboard' ? 'text-[#FBBC04]' : ''} /> Top
             </button>
             <button 
-              onClick={() => setActiveTab('legend')}
+              onClick={() => { soundService.play('click'); setActiveTab('legend'); }}
               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTab === 'legend' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
             >
               <Info size={14} className={activeTab === 'legend' ? 'text-[#34A853]' : ''} /> Info
@@ -161,7 +257,7 @@ export const UI = () => {
                     <h3 className="text-lg font-black text-gray-900 mb-2">Ready to Play?</h3>
                     <p className="text-sm text-gray-500 mb-6 font-medium">You have 60 seconds to grab as many prizes as possible.</p>
                     <button 
-                      onClick={joinQueue}
+                      onClick={() => { soundService.play('click'); joinQueue(); }}
                       className="w-full bg-[#4285F4] text-white font-bold py-4 rounded-xl hover:bg-[#3367D6] hover:shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-base"
                     >
                       <Play size={20} fill="currentColor" /> Start Game
@@ -233,7 +329,7 @@ export const UI = () => {
           {/* Drop Button */}
           <button 
             className="w-24 h-24 bg-red-500 text-white font-black rounded-full shadow-lg border-4 border-red-600 active:bg-red-600 active:scale-95 transition-transform pointer-events-auto flex items-center justify-center text-xl"
-            onPointerDown={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('force_drop')); }}
+            onPointerDown={(e) => { e.preventDefault(); soundService.play('click'); window.dispatchEvent(new CustomEvent('force_drop')); }}
           >
             DROP
           </button>
@@ -264,7 +360,7 @@ export const UI = () => {
             </div>
             
             <button 
-              onClick={() => useGameStore.setState({ gameOver: null })}
+              onClick={() => { soundService.play('click'); useGameStore.setState({ gameOver: null }); }}
               className="w-full py-4 bg-gray-900 text-white rounded-full font-bold hover:bg-gray-800 transition-all active:scale-[0.98]"
             >
               Close & Keep Playing

@@ -8,6 +8,7 @@ import { useFrame } from '@react-three/fiber';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import * as THREE from 'three';
 import { useGameStore, prizeRefs } from '../store';
+import { soundService } from '../services/soundService';
 
 export const Claw = ({ isLocal }: { isLocal: boolean }) => {
   const clawState = useGameStore(state => state.clawState);
@@ -87,15 +88,21 @@ export const Claw = ({ isLocal }: { isLocal: boolean }) => {
       const speed = 5 * delta;
       
       if (ls.state === 'idle') {
-        if (keys.current.w) ls.z -= speed;
-        if (keys.current.s) ls.z += speed;
-        if (keys.current.a) ls.x -= speed;
-        if (keys.current.d) ls.x += speed;
+        const isMoving = keys.current.w || keys.current.s || keys.current.a || keys.current.d;
+        if (isMoving) {
+          soundService.play('move', true, 0.2);
+          if (keys.current.w) ls.z -= speed;
+          if (keys.current.s) ls.z += speed;
+          if (keys.current.a) ls.x -= speed;
+          if (keys.current.d) ls.x += speed;
+        } else {
+          soundService.stop('move');
+        }
         
         ls.x = THREE.MathUtils.clamp(ls.x, -4.5, 4.5);
         ls.z = THREE.MathUtils.clamp(ls.z, -4.5, 4.5);
         
-        if (keys.current.w || keys.current.s || keys.current.a || keys.current.d) {
+        if (isMoving) {
           if (state.clock.elapsedTime - lastEmit.current > 0.05) { // Throttle to ~20fps
             updateClaw({ x: ls.x, z: ls.z });
             lastEmit.current = state.clock.elapsedTime;
@@ -103,6 +110,8 @@ export const Claw = ({ isLocal }: { isLocal: boolean }) => {
         }
       }
       else if (ls.state === 'dropping') {
+        soundService.stop('move');
+        soundService.play('drop', false, 0.3);
         ls.y -= 6 * delta;
         if (ls.y <= 2.5) {
           ls.y = 2.5;
@@ -133,6 +142,7 @@ export const Claw = ({ isLocal }: { isLocal: boolean }) => {
           if (closestPrize) {
             ls.grabbedPrizeId = closestPrize.id;
             updateClaw({ grabbedPrizeId: closestPrize.id });
+            soundService.play('capture', false, 0.5);
           }
         }
 

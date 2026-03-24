@@ -17,6 +17,7 @@ interface GameState {
   clawState: any;
   myId: string | null;
   gameOver: { winner: any, players: any[] } | null;
+  hasSeenTutorial: boolean;
   
   connect: () => void;
   join: (name: string) => void;
@@ -25,6 +26,7 @@ interface GameState {
   updatePrizes: (data: any) => void;
   capturePrize: (prizeId: string) => void;
   endTurn: () => void;
+  setHasSeenTutorial: (val: boolean) => void;
 }
 
 export const prizeRefs: Record<string, any> = {};
@@ -40,6 +42,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   clawState: { x: 0, y: 8, z: 0, state: 'idle', prongsClosed: false, grabbedPrizeId: null },
   myId: null,
   gameOver: null,
+  hasSeenTutorial: localStorage.getItem('neon_claw_tutorial_seen') === 'true',
 
   connect: () => {
     if (get().socket) return;
@@ -121,5 +124,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
   updatePrizes: (data) => get().socket?.emit('prizes_update', data),
   capturePrize: (prizeId) => get().socket?.emit('prize_captured', prizeId),
-  endTurn: () => get().socket?.emit('turn_end')
+  endTurn: () => get().socket?.emit('turn_end'),
+  setHasSeenTutorial: (val) => {
+    localStorage.setItem('neon_claw_tutorial_seen', String(val));
+    set({ hasSeenTutorial: val });
+  }
 }));
