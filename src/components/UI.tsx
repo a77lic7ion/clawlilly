@@ -21,8 +21,8 @@ const Tutorial = ({ onClose }: { onClose: () => void }) => {
     },
     {
       title: "Master the Controls",
-      content: "Desktop: Use WASD or Arrow Keys to move, SPACE to drop. Mobile: Use the on-screen D-pad and DROP button.",
-      icon: <div className="flex gap-4"><div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center font-bold">W</div><div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold">DROP</div></div>
+      content: "Desktop: Use A and D to move, SPACE to drop. Mobile: Use the on-screen buttons to move and drop.",
+      icon: <div className="flex gap-4"><div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center font-bold">A/D</div><div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold">DROP</div></div>
     },
     {
       title: "Score Big",
@@ -298,28 +298,16 @@ export const UI = () => {
       {/* Mobile Controls */}
       {isActive && (
         <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end pointer-events-none md:hidden z-40">
-          {/* D-Pad */}
-          <div className="relative w-32 h-32 pointer-events-auto">
+          {/* D-Pad (2D: Left/Right only) */}
+          <div className="flex gap-4 pointer-events-auto">
             <button 
-              className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full shadow-lg flex items-center justify-center active:bg-gray-200 text-xl font-bold text-gray-700"
-              onPointerDown={(e) => { e.preventDefault(); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w' })); }}
-              onPointerUp={(e) => { e.preventDefault(); window.dispatchEvent(new KeyboardEvent('keyup', { key: 'w' })); }}
-              onPointerLeave={(e) => { e.preventDefault(); window.dispatchEvent(new KeyboardEvent('keyup', { key: 'w' })); }}
-            >↑</button>
-            <button 
-              className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full shadow-lg flex items-center justify-center active:bg-gray-200 text-xl font-bold text-gray-700"
-              onPointerDown={(e) => { e.preventDefault(); window.dispatchEvent(new KeyboardEvent('keydown', { key: 's' })); }}
-              onPointerUp={(e) => { e.preventDefault(); window.dispatchEvent(new KeyboardEvent('keyup', { key: 's' })); }}
-              onPointerLeave={(e) => { e.preventDefault(); window.dispatchEvent(new KeyboardEvent('keyup', { key: 's' })); }}
-            >↓</button>
-            <button 
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full shadow-lg flex items-center justify-center active:bg-gray-200 text-xl font-bold text-gray-700"
+              className="w-16 h-16 bg-white/80 backdrop-blur rounded-2xl shadow-lg flex items-center justify-center active:bg-gray-200 text-3xl font-black text-gray-700 border-b-4 border-gray-300 active:border-b-0 active:translate-y-1 transition-all"
               onPointerDown={(e) => { e.preventDefault(); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' })); }}
               onPointerUp={(e) => { e.preventDefault(); window.dispatchEvent(new KeyboardEvent('keyup', { key: 'a' })); }}
               onPointerLeave={(e) => { e.preventDefault(); window.dispatchEvent(new KeyboardEvent('keyup', { key: 'a' })); }}
             >←</button>
             <button 
-              className="absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full shadow-lg flex items-center justify-center active:bg-gray-200 text-xl font-bold text-gray-700"
+              className="w-16 h-16 bg-white/80 backdrop-blur rounded-2xl shadow-lg flex items-center justify-center active:bg-gray-200 text-3xl font-black text-gray-700 border-b-4 border-gray-300 active:border-b-0 active:translate-y-1 transition-all"
               onPointerDown={(e) => { e.preventDefault(); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' })); }}
               onPointerUp={(e) => { e.preventDefault(); window.dispatchEvent(new KeyboardEvent('keyup', { key: 'd' })); }}
               onPointerLeave={(e) => { e.preventDefault(); window.dispatchEvent(new KeyboardEvent('keyup', { key: 'd' })); }}
@@ -328,9 +316,10 @@ export const UI = () => {
           
           {/* Drop Button */}
           <button 
-            className="w-24 h-24 bg-red-500 text-white font-black rounded-full shadow-lg border-4 border-red-600 active:bg-red-600 active:scale-95 transition-transform pointer-events-auto flex items-center justify-center text-xl"
+            className="w-24 h-24 bg-red-500 text-white font-black rounded-full shadow-lg border-b-8 border-red-700 active:border-b-0 active:translate-y-2 active:scale-95 transition-all pointer-events-auto flex flex-col items-center justify-center text-xl"
             onPointerDown={(e) => { e.preventDefault(); soundService.play('click'); window.dispatchEvent(new CustomEvent('force_drop')); }}
           >
+            <div className="text-[10px] opacity-80 mb-1">PRESS TO</div>
             DROP
           </button>
         </div>

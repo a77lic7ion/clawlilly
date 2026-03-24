@@ -36,14 +36,12 @@ export const Claw = ({ isLocal }: { isLocal: boolean }) => {
     grabbedPrizeId: null as string | null
   });
 
-  const keys = useRef({ w: false, a: false, s: false, d: false, space: false });
+  const keys = useRef({ a: false, d: false, space: false });
   const lastEmit = useRef(0);
   
   useEffect(() => {
     if (!isLocal) return;
     const down = (e: KeyboardEvent) => {
-      if(e.key === 'w' || e.key === 'ArrowUp') keys.current.w = true;
-      if(e.key === 's' || e.key === 'ArrowDown') keys.current.s = true;
       if(e.key === 'a' || e.key === 'ArrowLeft') keys.current.a = true;
       if(e.key === 'd' || e.key === 'ArrowRight') keys.current.d = true;
       if(e.key === ' ') {
@@ -54,14 +52,12 @@ export const Claw = ({ isLocal }: { isLocal: boolean }) => {
       }
     };
     const up = (e: KeyboardEvent) => {
-      if(e.key === 'w' || e.key === 'ArrowUp') keys.current.w = false;
-      if(e.key === 's' || e.key === 'ArrowDown') keys.current.s = false;
       if(e.key === 'a' || e.key === 'ArrowLeft') keys.current.a = false;
       if(e.key === 'd' || e.key === 'ArrowRight') keys.current.d = false;
       
       // Ensure final position is sent when keys are released
-      if (!keys.current.w && !keys.current.s && !keys.current.a && !keys.current.d) {
-        updateClaw({ x: localState.current.x, z: localState.current.z });
+      if (!keys.current.a && !keys.current.d) {
+        updateClaw({ x: localState.current.x });
       }
     };
     window.addEventListener('keydown', down);
@@ -85,14 +81,12 @@ export const Claw = ({ isLocal }: { isLocal: boolean }) => {
   useFrame((state, delta) => {
     if (isLocal) {
       const ls = localState.current;
-      const speed = 5 * delta;
+      const speed = 6 * delta;
       
       if (ls.state === 'idle') {
-        const isMoving = keys.current.w || keys.current.s || keys.current.a || keys.current.d;
+        const isMoving = keys.current.a || keys.current.d;
         if (isMoving) {
           soundService.play('move', true, 0.2);
-          if (keys.current.w) ls.z -= speed;
-          if (keys.current.s) ls.z += speed;
           if (keys.current.a) ls.x -= speed;
           if (keys.current.d) ls.x += speed;
         } else {
@@ -100,11 +94,11 @@ export const Claw = ({ isLocal }: { isLocal: boolean }) => {
         }
         
         ls.x = THREE.MathUtils.clamp(ls.x, -4.5, 4.5);
-        ls.z = THREE.MathUtils.clamp(ls.z, -4.5, 4.5);
+        ls.z = 0; // Lock Z to 0 for 2D view
         
         if (isMoving) {
           if (state.clock.elapsedTime - lastEmit.current > 0.05) { // Throttle to ~20fps
-            updateClaw({ x: ls.x, z: ls.z });
+            updateClaw({ x: ls.x });
             lastEmit.current = state.clock.elapsedTime;
           }
         }
@@ -112,7 +106,7 @@ export const Claw = ({ isLocal }: { isLocal: boolean }) => {
       else if (ls.state === 'dropping') {
         soundService.stop('move');
         soundService.play('drop', false, 0.3);
-        ls.y -= 6 * delta;
+        ls.y -= 7 * delta;
         if (ls.y <= 2.5) {
           ls.y = 2.5;
           ls.state = 'closing';
@@ -152,7 +146,7 @@ export const Claw = ({ isLocal }: { isLocal: boolean }) => {
         }
       }
       else if (ls.state === 'raising') {
-        ls.y += 4 * delta;
+        ls.y += 5 * delta;
         if (ls.y >= 8) {
           ls.y = 8;
           ls.state = 'returning';
@@ -160,12 +154,12 @@ export const Claw = ({ isLocal }: { isLocal: boolean }) => {
         }
       }
       else if (ls.state === 'returning') {
-        ls.x = THREE.MathUtils.lerp(ls.x, -3.5, 3 * delta);
-        ls.z = THREE.MathUtils.lerp(ls.z, 3.5, 3 * delta);
-        if (Math.abs(ls.x - -3.5) < 0.1 && Math.abs(ls.z - 3.5) < 0.1) {
+        ls.x = THREE.MathUtils.lerp(ls.x, -3.5, 4 * delta);
+        ls.z = 0;
+        if (Math.abs(ls.x - -3.5) < 0.1) {
           ls.state = 'opening';
           ls.timer = 0;
-          updateClaw({ x: ls.x, z: ls.z, state: 'opening' });
+          updateClaw({ x: ls.x, state: 'opening' });
         }
       }
       else if (ls.state === 'opening') {
@@ -175,7 +169,7 @@ export const Claw = ({ isLocal }: { isLocal: boolean }) => {
           updateClaw({ grabbedPrizeId: null });
         }
         ls.timer += delta;
-        if (ls.timer > 3.0) {
+        if (ls.timer > 2.0) {
           ls.state = 'idle';
           updateClaw({ state: 'idle', prongsClosed: false });
         }
@@ -199,7 +193,6 @@ export const Claw = ({ isLocal }: { isLocal: boolean }) => {
       prongsRef.forEach((ref, i) => {
          if (ref.current) {
             const angle = (i * Math.PI) / 2;
-            // Changed offset to attach directly to the edge of the cylinder (radius 0.6)
             const offset = new THREE.Vector3(Math.cos(angle)*0.55, -0.2, Math.sin(angle)*0.55);
             ref.current.setNextKinematicTranslation(pos.clone().add(offset));
             
@@ -212,34 +205,10 @@ export const Claw = ({ isLocal }: { isLocal: boolean }) => {
             ref.current.setNextKinematicRotation(threeQuat);
          }
       });
-    } else if (isPhysicsHost) {
-      if (baseRef.current) {
-        const currentPos = baseRef.current.translation();
-        const targetPos = new THREE.Vector3(clawState.x, clawState.y, clawState.z);
-        const newPos = new THREE.Vector3(currentPos.x, currentPos.y, currentPos.z).lerp(targetPos, 10 * delta);
-        baseRef.current.setNextKinematicTranslation(newPos);
-        
-        const targetAngle = clawState.prongsClosed ? -Math.PI/8 : Math.PI/3;
-        prongsRef.forEach((ref, i) => {
-           if (ref.current) {
-              const angle = (i * Math.PI) / 2;
-              const offset = new THREE.Vector3(Math.cos(angle)*0.55, -0.2, Math.sin(angle)*0.55);
-              ref.current.setNextKinematicTranslation(newPos.clone().add(offset));
-              
-              const quat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -angle - Math.PI/2);
-              quat.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), targetAngle));
-              
-              const currentQuat = ref.current.rotation();
-              const threeQuat = new THREE.Quaternion(currentQuat.x, currentQuat.y, currentQuat.z, currentQuat.w);
-              threeQuat.slerp(quat, 10 * delta);
-              ref.current.setNextKinematicRotation(threeQuat);
-           }
-        });
-      }
     } else {
       if (baseRef.current) {
         const currentPos = baseRef.current.translation();
-        const targetPos = new THREE.Vector3(clawState.x, clawState.y, clawState.z);
+        const targetPos = new THREE.Vector3(clawState.x, clawState.y, clawState.z || 0);
         const newPos = new THREE.Vector3(currentPos.x, currentPos.y, currentPos.z).lerp(targetPos, 10 * delta);
         baseRef.current.setNextKinematicTranslation(newPos);
         
@@ -264,7 +233,7 @@ export const Claw = ({ isLocal }: { isLocal: boolean }) => {
 
     const cx = isLocal ? localState.current.x : (baseRef.current ? baseRef.current.translation().x : clawState.x);
     const cy = isLocal ? localState.current.y : (baseRef.current ? baseRef.current.translation().y : clawState.y);
-    const cz = isLocal ? localState.current.z : (baseRef.current ? baseRef.current.translation().z : clawState.z);
+    const cz = isLocal ? localState.current.z : (baseRef.current ? baseRef.current.translation().z : (clawState.z || 0));
 
     if (crossbarRef.current) {
       crossbarRef.current.position.set(0, 10, cz);
@@ -280,33 +249,18 @@ export const Claw = ({ isLocal }: { isLocal: boolean }) => {
 
   const gantryJSX = (
     <group>
-      {/* Rails on the ceiling */}
-      <mesh position={[-4.8, 10, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.2, 0.2, 10]} />
+      {/* Rails on the ceiling (only one rail needed for 2D look) */}
+      <mesh position={[0, 10, 0]} castShadow receiveShadow>
+        <boxGeometry args={[10, 0.2, 0.2]} />
         <meshStandardMaterial color="#333" metalness={0.8} roughness={0.2} />
-      </mesh>
-      <mesh position={[4.8, 10, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.2, 0.2, 10]} />
-        <meshStandardMaterial color="#333" metalness={0.8} roughness={0.2} />
-      </mesh>
-      
-      {/* Crossbar connecting the two rails */}
-      <mesh ref={crossbarRef} castShadow receiveShadow>
-        <boxGeometry args={[9.8, 0.25, 0.25]} />
-        <meshStandardMaterial color="#444" metalness={0.8} roughness={0.2} />
       </mesh>
       
       {/* The carriage mechanism that moves with the claw */}
       <group ref={carriageRef}>
         {/* Motor/Carriage housing */}
         <mesh position={[0, -0.2, 0]} castShadow receiveShadow>
-          <boxGeometry args={[1.2, 0.6, 1.2]} />
+          <boxGeometry args={[1.2, 0.6, 0.6]} />
           <meshStandardMaterial color="#222" metalness={0.6} roughness={0.4} />
-        </mesh>
-        {/* Spool */}
-        <mesh position={[0, -0.2, 0.65]} rotation={[0, 0, Math.PI / 2]} castShadow receiveShadow>
-          <cylinderGeometry args={[0.2, 0.2, 0.8, 16]} />
-          <meshStandardMaterial color="#EA4335" metalness={0.3} roughness={0.7} />
         </mesh>
       </group>
 

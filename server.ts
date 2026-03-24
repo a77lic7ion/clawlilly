@@ -49,12 +49,8 @@ async function startServer() {
   function initPrizes() {
     prizes = [];
     for(let i=0; i<60; i++) {
-      let x = (Math.random()-0.5)*7;
-      let z = (Math.random()-0.5)*7;
-      // Avoid chute area (x: -5 to -2, z: 2 to 5)
-      if (x < -2 && z > 2) {
-        x += 3;
-      }
+      let x = (Math.random()-0.5)*8;
+      let z = (Math.random()-0.5)*0.5; // Very shallow Z for 2D feel
       
       const type = types[Math.floor(Math.random() * types.length)];
       const color = colors[Math.floor(Math.random() * colors.length)];
@@ -65,7 +61,7 @@ async function startServer() {
         type,
         color,
         value,
-        position: [x, Math.random()*4 + 1, z],
+        position: [x, Math.random()*5 + 1, z],
         rotation: [0,0,0,1]
       });
     }

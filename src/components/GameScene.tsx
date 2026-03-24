@@ -12,19 +12,14 @@ import { Prizes } from './Prizes';
 import { useGameStore } from '../store';
 import { useEffect } from 'react';
 
-const CameraSetup = ({ isLocal }: { isLocal: boolean }) => {
+const CameraSetup = () => {
   const { camera } = useThree();
 
   useEffect(() => {
-    if (isLocal) {
-      // Front view when playing
-      camera.position.set(0, 8, 26);
-    } else {
-      // Diagonal view when spectating
-      camera.position.set(18, 8, 18);
-    }
+    // Fixed front view for 2D feel
+    camera.position.set(0, 5, 18);
     camera.lookAt(0, 4, 0);
-  }, [isLocal, camera]);
+  }, [camera]);
 
   return null;
 };
@@ -35,19 +30,20 @@ export const GameScene = () => {
   const isLocal = activePlayer === myId && myId !== null;
 
   return (
-    <Canvas shadows>
-      <PerspectiveCamera makeDefault position={[18, 8, 22]} fov={45} />
-      <CameraSetup isLocal={isLocal} />
-      <ambientLight intensity={2.5} />
-      <pointLight position={[0, 9, 0]} intensity={4.0} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0001} />
+    <Canvas shadows gl={{ antialias: true, preserveDrawingBuffer: true }}>
+      <PerspectiveCamera makeDefault position={[0, 5, 18]} fov={40} />
+      <CameraSetup />
+      <ambientLight intensity={1.5} />
+      <pointLight position={[0, 9, 5]} intensity={3.0} castShadow shadow-mapSize={[1024, 1024]} shadow-bias={-0.0001} />
+      <directionalLight position={[0, 10, 10]} intensity={1.0} castShadow />
 
-      <Physics>
+      <Physics gravity={[0, -9.81, 0]}>
         <ClawMachine />
         <Claw isLocal={isLocal} />
         <Prizes isLocal={isLocal} />
       </Physics>
 
-      <Environment files="/google-office.jpg" background blur={0.02} environmentIntensity={1.5} backgroundRotation={[0, Math.PI * 0.725, 0]} environmentRotation={[0, Math.PI * 1.2, 0]} />
+      <Environment preset="city" background blur={0.5} />
     </Canvas>
   );
 };
